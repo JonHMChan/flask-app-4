@@ -1,0 +1,47 @@
+<!DOCTYPE html> <!-- All HTML files should start with this DOCTYPE tag-->
+<html>
+    <head>
+        <title>Pokedex</title>
+
+        <!-- For this page, your styles will be in /static/css/search.css -->
+        <!-- Do NOT use a CSS library or framework like Bootstrap - practice writing CSS first -->
+        <link type="text/css" rel="stylesheet" href="/static/css/search.css" />
+
+        <!-- jQuery is already downloaded and installed for you -->
+        <!-- In order to use jQuery in your JavaScript, this file needs to be added BEFORE your custom JavaScript -->
+        <script type="text/javascript" src="/static/js/jquery.min.js"></script>
+    </head>
+    <body>
+        <!-- Your HTML should start here -->
+        
+        <div class="container">
+            <p class="back"><a href="/">Back to home page</a></p>
+            <h1>Search</h1>
+            <form class="search-container" action="/search">
+                <input type="text" name="query" id="query" placeholder="Search" value="{{ query }}" />
+            </form>
+            <p class="result-meta">
+                {% if results|length == 0 %}
+                    No results for <strong>"{{query}}"</strong>
+                {% else %}
+                    Showing {{ results|length }} {% if results|length == 1 %}result{% else %}results{% endif %} for <strong>"{{ query }}"</strong>
+                {% endif %}
+            </p>
+            <div class="content">
+                {% for result in results %}
+                    <div class="result">
+                        <p class="title"><a href="{{ result.url }}">{{ result.name|safe }}</a></p>
+                        <p class="subtitle">{{ result.type }}</p>
+                        <p class="description">{{ result.description|safe }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+            
+        </div>
+
+        <!-- Your HTML should end here -->
+        <!-- For this page, your JavaScript will be in /static/js/search.js -->
+        <!-- Custom JavaScript is typically located at the BOTTOM right before the closing </body> tag -->
+        <script type="text/javascript" src="/static/js/search.js"></script>
+    </body>
+</html>
