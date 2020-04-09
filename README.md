@@ -34,10 +34,16 @@ These instructions are a simplified version of the Flask [installation instructi
 
 1. Clone this repository using `git clone` and `cd` from your command line into the repository folder.
 2. Make sure you have Python 3 installed. You can check this by seeing if the command `python3` works in your command line. If you successfully run `python3`, you can exit the interpreter by typing `quit()` then hitting Enter. If you don't have Python 3 installed, follow [these instructions](https://realpython.com/installing-python/).
-3. From the root of the repository, run the following command: `sh setup.sh`. This is a file I've written to automate the initial setup of this application. It will start your app automatically, and you can go to `localhost:5000` in a web browser to view it. If you want detailed instructions on how this file works, go to "How setup.sh works" below.
-4. Whenever you're about to work on your application, make sure to run `. venv/bin/activate` first to start your virtual environment, then you can run `flask run` from the root of your repository to start your application.
+3. **NEW** Download Postgres.app. This will install the Postgres database on your computer. This should create a Postgres icon (a small elephant in the top right toolbar of your Mac). If you click on this icon, it will have an option to "Open Postgres" and you can start and stop your database using these buttons.
+4. **NEW** After installing Postgres, you need to make the `psql` command in your Terminal works in order for the Python Postgres driver `psycopg2` to be properly installed. This means you will need to change your `.bash_profile` file located in your home directory (`~`) (the directory you first land on when you open a new Terminal window) and add an `EXPORT` line.
+  - Open up the `.bash_profile` file by using `code ~/.bash_profile` to open it in Visual Studio Code. If `code` doesn't work, you can install it following [these instructions](https://code.visualstudio.com/docs/setup/mac).
+  - Once opened, you want to add a line at the bottom of the file with the following: `export PATH="/Applications/Postgres.app/Contents/Versions/9.6/bin:$PATH"`. The value for `PATH` might be different for you depending on the version of Postgres.app you downloaded.
+  - Save your `.bash_profile` changes, restart the Terminal, and try running the command `psql`. This should open up the Command Line interface for Postgres, and it means it was properly installed for you to use `sh setup.sh`.
+5. From the root of the repository, run the following command: `sh setup.sh`. This is a file I've written to automate the initial setup of this application. It will start your app automatically, and you can go to `localhost:5000` in a web browser to view it. If you want detailed instructions on how this file works, go to "How setup.sh works" below.
+6. Whenever you're about to work on your application, make sure to run `. venv/bin/activate` first to start your virtual environment, then you can run `flask run` from the root of your repository to start your application.
  - To stop your server it's running in the command line, hit `Control + C` to stop the server.
  - If you change your HTML files, you'll have to restart the server to see changes.
+
 
 ## How setup.sh works
 1. Python 3 comes with venv, a "virtual environment" to manage packages like `Flask` that you'll need to run your application. When you first clone this repository, run `python3 -m venv venv` from the root of the repository to create a virtual environment for your application. This will create a few folders and files related to venv, in a `venv` folder.
