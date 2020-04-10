@@ -88,7 +88,7 @@
     ]
 },
 {
-    "id": 4,
+    "id": 5,
     "name": "Lt. Surge's Team",
     "description": "This is the Vermilion City gym leader's team. He specializes in electric type Pokemon.",
     "members": [
@@ -107,7 +107,7 @@
     ]
 },
 {
-    "id": 5,
+    "id": 6,
     "name": "Erika's Team",
     "description": "This is the Celadon City gym leader's team. She specializes in grass type Pokemon.",
     "members": [
@@ -126,7 +126,7 @@
     ]
 },
 {
-    "id": 6,
+    "id": 7,
     "name": "Koga's Team",
     "description": "This is the Fuschia City gym leader's team. He specializes in poison type Pokemon.",
     "members": [
@@ -149,7 +149,7 @@
     ]
 },
 {
-    "id": 7,
+    "id": 8,
     "name": "Sabrina's Team",
     "description": "This is the Saffron City gym leader's team. She specializes in psychic type Pokemon.",
     "members": [
@@ -172,7 +172,7 @@
     ]
 },
 {
-    "id": 8,
+    "id": 9,
     "name": "Blaine's Team",
     "description": "This is the Cinnabar City gym leader's team. She specializes in fire type Pokemon.",
     "members": [
@@ -195,7 +195,7 @@
     ]
 },
 {
-    "id": 9,
+    "id": 10,
     "name": "Giovanni's Team",
     "description": "This is the Viridian City gym leader's team. He specializes in ground type Pokemon.",
     "members": [
