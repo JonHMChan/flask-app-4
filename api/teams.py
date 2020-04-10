@@ -1,13 +1,18 @@
+from data import conn
 from flask import Blueprint, jsonify, request
 import json
 
 # A Flask blueprint that allows you to separate different parts of the app into different files
 teams = Blueprint('teams', 'teams')
 
-# Take team data from database.json and turn it into a Python dictionary to store in DATABASE
+# Get database connection and cursor
+db = conn.cursor()
+
 with open('data/database.json') as f:
-  raw = json.load(f)
-DATABASE = raw.get("teams", [])
+    # Load the JSON file
+    raw = json.load(f)
+
+DATABASE = raw.get("teams")
 
 # Track the ID that will be used for new teams when they are added to DATABASE
 current_id = len(DATABASE)
@@ -33,15 +38,61 @@ current_id = len(DATABASE)
 # API route that returns all teams from DATABASE
 @teams.route('/teams', methods=['GET'])
 def api_teams_get():
-    return jsonify(DATABASE), 200
+    result = []
+    db.execute("""
+        SELECT id, name, description
+        FROM teams;
+    """)
+    teams = db.fetchall()
+
+    db.execute("""
+        SELECT team_id, pokemon_id, level
+        FROM team_members;
+    """)
+    members = db.fetchall()
+
+    for team in teams:
+        result.append({
+            "id": team[0],
+            "name": team[1],
+            "description": team[2],
+            "members": list(map(lambda m: {
+                "pokemon_id": m[1],
+                "level": m[2]
+            }, list(filter(lambda m: m[0] == team[0], members))))
+        })
+    return jsonify(result), 200
 
 # API route that returns a single teams from DATABASE according to the ID in the URL
 # For example /api/teams/1 will give you Ash's Team
 @teams.route('/teams/<int:id>', methods=['GET'])
 def api_teams_id_get(id):
-    for teams in DATABASE:
-        if teams.get("id") == id:
-            return jsonify(teams), 200
+    db.execute("""
+        SELECT id, name, description
+        FROM teams
+        WHERE id = %s;
+    """, (id,))
+    team_result = db.fetchall()
+    if len(team_result) > 0:
+        team = team_result[0]
+        db.execute("""
+            SELECT pokemon_id, level
+            FROM team_members
+            WHERE team_id = %s
+        """, (id,))
+        members = db.fetchall()
+
+        result = {
+            "id": team[0],
+            "name": team[1],
+            "description": team[2],
+            "members": list(map(lambda m: {
+                "pokemon_id": m[0],
+                "level": m[1]
+            }, members))
+        }
+
+        return jsonify(result), 200
     return jsonify({}), 404
 
 # API route that creates a new team using the request body JSON and inserts it at the end of DATABASE
