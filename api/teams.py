@@ -125,13 +125,21 @@ def api_teams_id_post():
         "description": json["description"],
         "members": json["members"]
     }
+
     # Add the new team entry to the end of the global DATABASE list
-    DATABASE.append(team)
+    db.execute("""
+        INSERT INTO teams (name, description)
+        VALUES (%s, %s)
+        RETURNING id;
+    """, (team["name"], team["description"]))
+    id = db.fetchone()[0]
 
-    # Increment the current_id by 1 so it will be unique for the next inserted team
-    current_id = current_id + 1
-
-    print(DATABASE)
+    for member in team["members"]:
+        db.execute("""
+            INSERT INTO team_members (team_id, pokemon_id, level)
+            VALUES (%s, %s, %s);
+        """, (id, member["pokemon_id"], member["level"]))
+        conn.commit()
 
     # Return the newly inserted team as a response
     return jsonify(team)
@@ -142,15 +150,48 @@ def api_teams_id_post():
 def api_teams_id_put(id):
 
     # Get the JSON from the request body and turn it into a Python dictionary
-    json = request.get_json(id)
+    json = request.get_json()
 
-    # Iterate through the teams DATABASE, making sure the index is available by using enumerate()
-    for index, teams in enumerate(DATABASE):
+    db.execute("""
+        SELECT id, name, description
+        FROM teams
+        WHERE id = %s;
+    """, (json["id"],))
+    db_result = db.fetchone()
 
-        # If the ID matches, replace the entire teams dictionary with the request body JSON at the same index
-        if teams.get("id") == id:
-            DATABASE[index] = json
-            return jsonify(json), 200
+    if db_result != None:
+
+        team = {
+            "id": db_result[0],
+            "name": json["name"],
+            "description": json["description"],
+            "members": json["members"]
+        }
+
+        db.execute("""
+            UPDATE teams
+            SET
+                name = %s,
+                description = %s
+            WHERE
+                id = %s;
+        """, (team["name"], team["description"], team["id"]))
+        conn.commit()
+
+        db.execute("""
+            DELETE FROM team_members
+            WHERE team_id = %s;
+        """, (team["id"],))
+        conn.commit()
+
+        for member in team["members"]:
+            db.execute("""
+                INSERT INTO team_members (team_id, pokemon_id, level)
+                VALUES (%s, %s, %s)
+            """, (team["id"], member["pokemon_id"], member["level"]))
+            conn.commit()
+
+        return jsonify(team), 200
     
     # If no teams with the ID in the URL can be found in DATABASE, return nothing
     return jsonify({}), 404

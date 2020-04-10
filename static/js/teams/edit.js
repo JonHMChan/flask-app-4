@@ -1,6 +1,9 @@
 // Your code starts here
 $(document).ready(function() {
     var team = {};
+    var $name = $("#name");
+    var $description = $("#description");
+    var backURL = "";
     $.ajax({
         method: "GET",
         url: "/api" + window.location.pathname.replace("/edit", ""),
@@ -10,13 +13,14 @@ $(document).ready(function() {
             team = data;
 
             // Update back link so it goes to the team page
-            $(".back").attr("href", `/teams/${team.id}`);
+            backURL = `/teams/${team.id}`;
+            $(".back").attr("href", backURL);
 
             // Populate team name in input field
-            $("#name").val(team.name);
+            $name.val(team.name);
 
             // Populate description in textarea
-            $("#description").val(team.description);
+            $description.val(team.description);
             
             // Create the team member table so the user can add, update, or delete pokemon from the team
             for (var i = 0; i < team.members.length; i++) {
@@ -28,7 +32,7 @@ $(document).ready(function() {
                     <tr class="team-member-${member.pokemon_id}">
                         <td><img class="pokemon-image" /></td>
                         <td class="name"><a href="/pokemon/${member.pokemon_id}"></a></td>
-                        <td class="level"><input type="text" value="${member.level}" /></td>
+                        <td class="level"><input type="text" value="${member.level}" data-attr-index=${i} /></td>
                         <td class="types"></td>
                         <td class="remove">
                             <button class="pokemon-remove" data-attr-id="${member.pokemon_id}">Remove</button>
@@ -50,6 +54,12 @@ $(document).ready(function() {
                     $(`.team-member-${pokemon_id}`).remove();
                 });
 
+                $(`.level input[type=text]`).change(function(e) {
+                    var $this = $(this);
+                    var index = parseInt($this.attr("data-attr-index"));
+                    team.members[index].level = $this.val();
+                })
+
                 $.ajax({
                     method: "GET",
                     url: "/api/pokemon/" + member.pokemon_id,
@@ -66,13 +76,15 @@ $(document).ready(function() {
 
             $(".form").submit(function(e) {
                 e.preventDefault();
+                team.name = $name.val();
+                team.description = $description.val();
                 $.ajax({
                     method: "PUT",
                     url: `/api/teams/${team.id}`,
                     contentType: "application/json",
                     data: JSON.stringify(team),
                     success: function(data) {
-                        window.location.href="/";
+                        window.location.href=backURL;
                     }
                 })
             })
