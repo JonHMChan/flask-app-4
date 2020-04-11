@@ -8,15 +8,6 @@ teams = Blueprint('teams', 'teams')
 # Get database connection and cursor
 db = conn.cursor()
 
-with open('data/database.json') as f:
-    # Load the JSON file
-    raw = json.load(f)
-
-DATABASE = raw.get("teams")
-
-# Track the ID that will be used for new teams when they are added to DATABASE
-current_id = len(DATABASE)
-
 # REST
 # One of the ways to design your web application is to create an internal API so your front end can get data.
 # There are lots of different ways different applications do this, but one of the most common ways is to
@@ -35,22 +26,26 @@ current_id = len(DATABASE)
 
 # Some of these API endpoints are incomplete according to what the REST pattern dictates. It's your job to fix them.
 
-# API route that returns all teams from DATABASE
+# API route that returns all teams from database
 @teams.route('/teams', methods=['GET'])
 def api_teams_get():
     result = []
+
+    # Get all teams data
     db.execute("""
         SELECT id, name, description
         FROM teams;
     """)
     teams = db.fetchall()
 
+    # Get all team members
     db.execute("""
         SELECT team_id, pokemon_id, level
         FROM team_members;
     """)
     members = db.fetchall()
 
+    # Add team members to each team dictionary
     for team in teams:
         result.append({
             "id": team[0],
@@ -63,10 +58,12 @@ def api_teams_get():
         })
     return jsonify(result), 200
 
-# API route that returns a single teams from DATABASE according to the ID in the URL
+# API route that returns a single teams from database according to the ID in the URL
 # For example /api/teams/1 will give you Ash's Team
 @teams.route('/teams/<int:id>', methods=['GET'])
 def api_teams_id_get(id):
+
+    # Get a single team from the database
     db.execute("""
         SELECT id, name, description
         FROM teams
@@ -75,6 +72,8 @@ def api_teams_id_get(id):
     team_result = db.fetchall()
     if len(team_result) > 0:
         team = team_result[0]
+
+        # Get team members
         db.execute("""
             SELECT pokemon_id, level
             FROM team_members
@@ -82,6 +81,7 @@ def api_teams_id_get(id):
         """, (id,))
         members = db.fetchall()
 
+        # Construct result data to serve to client
         result = {
             "id": team[0],
             "name": team[1],
@@ -93,18 +93,17 @@ def api_teams_id_get(id):
         }
 
         return jsonify(result), 200
+
     return jsonify({}), 404
 
-# API route that creates a new team using the request body JSON and inserts it at the end of DATABASE
+# API route that creates a new team using the request body JSON and inserts it into the database
 @teams.route('/teams', methods=['POST'])
 def api_teams_id_post():
-    # Declare current_id as a global so it can be used correctly in this function
-    global current_id
 
     # Get the JSON from the request body and turn it into a Python dictionary
     json = request.get_json()
 
-    # Validating the request body before inserting it into DATABASE
+    # Validating the request body before inserting it into database
     keys = ["name", "description", "members"]
     for key in keys:
         # Make sure all the required keys in the keys list is in the response json
@@ -118,15 +117,14 @@ def api_teams_id_post():
                 "error": ("Your value at '" + key  + "' must be a list, not a '" + type(json[key]).__name__ + "'")
             }), 400
 
-    # Create a dictionary that contains all of the request json information and a new ID
+    # Create a dictionary that contains all of the request json information
     team = {
-        "id": current_id,
         "name": json["name"],
         "description": json["description"],
         "members": json["members"]
     }
 
-    # Add the new team entry to the end of the global DATABASE list
+    # Add the new team entry to database, fetching the new ID
     db.execute("""
         INSERT INTO teams (name, description)
         VALUES (%s, %s)
@@ -134,6 +132,7 @@ def api_teams_id_post():
     """, (team["name"], team["description"]))
     id = db.fetchone()[0]
 
+    # Insert all the new team members
     for member in team["members"]:
         db.execute("""
             INSERT INTO team_members (team_id, pokemon_id, level)
@@ -199,7 +198,7 @@ def api_teams_id_put(id):
         # Return the new team data
         return jsonify(team), 200
     
-    # If no teams with the ID in the URL can be found in DATABASE, return nothing
+    # If no teams with the ID in the URL can be found in the database, return nothing
     return jsonify({}), 404
 
 # API route that does a partial update by changing the values of the teams dictionary at the specified ID with the values in request body JSON
@@ -277,10 +276,10 @@ def api_teams_id_patch(id):
         # Return the new team data
         return jsonify(team), 200
 
-    # If no teams with the ID in the URL can be found in DATABASE, return nothing
+    # If no teams with the ID in the URL can be found in database, return nothing
     return jsonify({}), 404
 
-# API route that deletes a single teams from DATABASE
+# API route that deletes a single teams from database
 # For example /api/teams/1 will delete Bulbasaur
 @teams.route('/teams/<int:id>', methods=['DELETE'])
 def api_teams_id_delete(id):
