@@ -37,6 +37,7 @@ def api_teams_get():
         FROM teams;
     """)
     teams = db.fetchall()
+    conn.commit()
 
     # Get all team members
     db.execute("""
