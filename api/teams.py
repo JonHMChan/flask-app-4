@@ -152,6 +152,7 @@ def api_teams_id_put(id):
     # Get the JSON from the request body and turn it into a Python dictionary
     json = request.get_json()
 
+    # Get the current team data from the database
     db.execute("""
         SELECT id, name, description
         FROM teams
@@ -161,6 +162,7 @@ def api_teams_id_put(id):
 
     if db_result != None:
 
+        # Construct the team dictionary with new data for eventual response
         team = {
             "id": db_result[0],
             "name": json["name"],
@@ -168,6 +170,7 @@ def api_teams_id_put(id):
             "members": json["members"]
         }
 
+        # Update the team data
         db.execute("""
             UPDATE teams
             SET
@@ -178,12 +181,14 @@ def api_teams_id_put(id):
         """, (team["name"], team["description"], team["id"]))
         conn.commit()
 
+        # Remove all existing team members
         db.execute("""
             DELETE FROM team_members
             WHERE team_id = %s;
         """, (team["id"],))
         conn.commit()
 
+        # Insert new team members into the database
         for member in team["members"]:
             db.execute("""
                 INSERT INTO team_members (team_id, pokemon_id, level)
@@ -191,6 +196,7 @@ def api_teams_id_put(id):
             """, (team["id"], member["pokemon_id"], member["level"]))
             conn.commit()
 
+        # Return the new team data
         return jsonify(team), 200
     
     # If no teams with the ID in the URL can be found in DATABASE, return nothing
@@ -204,21 +210,72 @@ def api_teams_id_patch(id):
     # Get the JSON from the request body and turn it into a Python dictionary
     json = request.get_json()
 
-    # Iterate through all of the teams DATABASE
-    for teams in DATABASE:
-        # Find a matching teams with the ID specified in the URL
-        if teams.get("id") == id:
-            # Go through every key in the teams dictionary
-            for key in teams:
-                # Get the value of the key, or if it has no value, False
-                jsonValue = json.get(key, False)
-                # Make sure there is a value and make it's the same type as the existing value
-                if jsonValue and type(jsonValue) == type(teams[key]):
-                    # Replace the value of the key
-                    teams[key] = jsonValue
-            
-            # Return the modified teams dictionary as a response
-            return jsonify(teams), 200
+    # Get the current team data from the database
+    db.execute("""
+        SELECT id, name, description
+        FROM teams
+        WHERE id = %s;
+    """, (json["id"],))
+    db_result = db.fetchone()
+
+    if db_result != None:
+
+        # Construct the team dictionary for eventual response
+        team = {
+            "id": db_result[0],
+            "name": db_result[1],
+            "description": db_result[2],
+            "members": []
+        }
+
+        # Change name and description if needed based on request
+        team["name"] = json.get("name", team["name"])
+        team["description"] = json.get("description", team["description"])
+
+        # Update team row first
+        db.execute("""
+            UPDATE teams
+            SET
+                name = %s,
+                description = %s
+            WHERE id = %s;
+        """, (team["name"], team["description"], id))
+        conn.commit()
+
+        # Depending on if there are team member updates
+        if (len(json.get("members", [])) > 0):
+
+            # Delet all team members
+            db.execute("""
+                DELETE FROM team_members
+                WHERE team_id = %s;
+            """, (id,))
+            conn.commit()
+
+            # Insert new team members
+            for member in json["members"]:
+                db.execute("""
+                    INSERT INTO team_members (team_id, pokemon_id, level)
+                    VALUES (%s, %s, %s)
+                """, (id, member["pokemon_id"], member["level"]))
+        
+        # Get all team members after update
+        db.execute("""
+            SELECT pokemon_id, level
+            FROM team_members
+            WHERE team_id = %s;
+        """, (id,))
+        db_members_result = db.fetchall()
+
+        # Add members into team dictionary
+        for member in db_members_result:
+            team["members"].append({
+                "pokemon_id": member[0],
+                "level": member[1]
+            })
+
+        # Return the new team data
+        return jsonify(team), 200
 
     # If no teams with the ID in the URL can be found in DATABASE, return nothing
     return jsonify({}), 404
@@ -227,11 +284,18 @@ def api_teams_id_patch(id):
 # For example /api/teams/1 will delete Bulbasaur
 @teams.route('/teams/<int:id>', methods=['DELETE'])
 def api_teams_id_delete(id):
-    # Declare DATABASE as a global so it can be used correctly in this function
-    global DATABASE
 
-    # Filter the list so any teams dictionaries with the ID specified in the URL are removed from DATABASE
-    DATABASE = list(filter(lambda x: x.get("id") != id, DATABASE))
+    # Delete team members first
+    db.execute("""
+        DELETE FROM team_members WHERE team_id = %s;
+    """, (id,))
+    conn.commit()
+
+    # Delete team
+    db.execute("""
+        DELETE FROM teams WHERE id = %s
+    """, (id,))
+    conn.commit()
 
     # Return an empty object
     return jsonify({}), 200
