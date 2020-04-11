@@ -5,9 +5,6 @@ import json
 # A Flask blueprint that allows you to separate different parts of the app into different files
 teams = Blueprint('teams', 'teams')
 
-# Get database connection and cursor
-db = conn.cursor()
-
 # REST
 # One of the ways to design your web application is to create an internal API so your front end can get data.
 # There are lots of different ways different applications do this, but one of the most common ways is to
@@ -29,22 +26,24 @@ db = conn.cursor()
 # API route that returns all teams from database
 @teams.route('/teams', methods=['GET'])
 def api_teams_get():
+    cursor = conn.cursor()
+
     result = []
 
     # Get all teams data
-    db.execute("""
+    cursor.execute("""
         SELECT id, name, description
         FROM teams;
     """)
-    teams = db.fetchall()
+    teams = cursor.fetchall()
     conn.commit()
 
     # Get all team members
-    db.execute("""
+    cursor.execute("""
         SELECT team_id, pokemon_id, level
         FROM team_members;
     """)
-    members = db.fetchall()
+    members = cursor.fetchall()
 
     # Add team members to each team dictionary
     for team in teams:
@@ -63,24 +62,25 @@ def api_teams_get():
 # For example /api/teams/1 will give you Ash's Team
 @teams.route('/teams/<int:id>', methods=['GET'])
 def api_teams_id_get(id):
+    cursor = conn.cursor()
 
     # Get a single team from the database
-    db.execute("""
+    cursor.execute("""
         SELECT id, name, description
         FROM teams
         WHERE id = %s;
     """, (id,))
-    team_result = db.fetchall()
+    team_result = cursor.fetchall()
     if len(team_result) > 0:
         team = team_result[0]
 
         # Get team members
-        db.execute("""
+        cursor.execute("""
             SELECT pokemon_id, level
             FROM team_members
             WHERE team_id = %s
         """, (id,))
-        members = db.fetchall()
+        members = cursor.fetchall()
 
         # Construct result data to serve to client
         result = {
@@ -100,6 +100,7 @@ def api_teams_id_get(id):
 # API route that creates a new team using the request body JSON and inserts it into the database
 @teams.route('/teams', methods=['POST'])
 def api_teams_id_post():
+    cursor = conn.cursor()
 
     # Get the JSON from the request body and turn it into a Python dictionary
     json = request.get_json()
@@ -126,16 +127,16 @@ def api_teams_id_post():
     }
 
     # Add the new team entry to database, fetching the new ID
-    db.execute("""
+    cursor.execute("""
         INSERT INTO teams (name, description)
         VALUES (%s, %s)
         RETURNING id;
     """, (team["name"], team["description"]))
-    id = db.fetchone()[0]
+    id = cursor.fetchone()[0]
 
     # Insert all the new team members
     for member in team["members"]:
-        db.execute("""
+        cursor.execute("""
             INSERT INTO team_members (team_id, pokemon_id, level)
             VALUES (%s, %s, %s);
         """, (id, member["pokemon_id"], member["level"]))
@@ -148,17 +149,18 @@ def api_teams_id_post():
 # For example sending { "name": "Foobar" } to /api/teams/1 would replace the Bulbasaur dictionary with the object { "name": "Foobar" }
 @teams.route('/teams/<int:id>', methods=['PUT'])
 def api_teams_id_put(id):
+    cursor = conn.cursor()
 
     # Get the JSON from the request body and turn it into a Python dictionary
     json = request.get_json()
 
     # Get the current team data from the database
-    db.execute("""
+    cursor.execute("""
         SELECT id, name, description
         FROM teams
         WHERE id = %s;
     """, (json["id"],))
-    db_result = db.fetchone()
+    db_result = cursor.fetchone()
 
     if db_result != None:
 
@@ -171,7 +173,7 @@ def api_teams_id_put(id):
         }
 
         # Update the team data
-        db.execute("""
+        cursor.execute("""
             UPDATE teams
             SET
                 name = %s,
@@ -182,7 +184,7 @@ def api_teams_id_put(id):
         conn.commit()
 
         # Remove all existing team members
-        db.execute("""
+        cursor.execute("""
             DELETE FROM team_members
             WHERE team_id = %s;
         """, (team["id"],))
@@ -190,7 +192,7 @@ def api_teams_id_put(id):
 
         # Insert new team members into the database
         for member in team["members"]:
-            db.execute("""
+            cursor.execute("""
                 INSERT INTO team_members (team_id, pokemon_id, level)
                 VALUES (%s, %s, %s)
             """, (team["id"], member["pokemon_id"], member["level"]))
@@ -206,17 +208,18 @@ def api_teams_id_put(id):
 # For example sending { "name": "Foobar" } to /api/teams/1 would only change Bulbasaur's name to "Foobar" - nothing else would change
 @teams.route('/teams/<int:id>', methods=['PATCH'])
 def api_teams_id_patch(id):
+    cursor = conn.cursor()
 
     # Get the JSON from the request body and turn it into a Python dictionary
     json = request.get_json()
 
     # Get the current team data from the database
-    db.execute("""
+    cursor.execute("""
         SELECT id, name, description
         FROM teams
         WHERE id = %s;
     """, (json["id"],))
-    db_result = db.fetchone()
+    db_result = cursor.fetchone()
 
     if db_result != None:
 
@@ -233,7 +236,7 @@ def api_teams_id_patch(id):
         team["description"] = json.get("description", team["description"])
 
         # Update team row first
-        db.execute("""
+        cursor.execute("""
             UPDATE teams
             SET
                 name = %s,
@@ -246,7 +249,7 @@ def api_teams_id_patch(id):
         if (len(json.get("members", [])) > 0):
 
             # Delet all team members
-            db.execute("""
+            cursor.execute("""
                 DELETE FROM team_members
                 WHERE team_id = %s;
             """, (id,))
@@ -254,18 +257,18 @@ def api_teams_id_patch(id):
 
             # Insert new team members
             for member in json["members"]:
-                db.execute("""
+                cursor.execute("""
                     INSERT INTO team_members (team_id, pokemon_id, level)
                     VALUES (%s, %s, %s)
                 """, (id, member["pokemon_id"], member["level"]))
         
         # Get all team members after update
-        db.execute("""
+        cursor.execute("""
             SELECT pokemon_id, level
             FROM team_members
             WHERE team_id = %s;
         """, (id,))
-        db_members_result = db.fetchall()
+        db_members_result = cursor.fetchall()
 
         # Add members into team dictionary
         for member in db_members_result:
@@ -284,15 +287,16 @@ def api_teams_id_patch(id):
 # For example /api/teams/1 will delete Bulbasaur
 @teams.route('/teams/<int:id>', methods=['DELETE'])
 def api_teams_id_delete(id):
+    cursor = conn.cursor()
 
     # Delete team members first
-    db.execute("""
+    cursor.execute("""
         DELETE FROM team_members WHERE team_id = %s;
     """, (id,))
     conn.commit()
 
     # Delete team
-    db.execute("""
+    cursor.execute("""
         DELETE FROM teams WHERE id = %s
     """, (id,))
     conn.commit()
