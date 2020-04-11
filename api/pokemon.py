@@ -5,30 +5,29 @@ import json
 # A Flask blueprint that allows you to separate different parts of the app into different files
 pokemon = Blueprint('pokemon', 'pokemon')
 
-# Get database connection and cursor
-db = conn.cursor()
-
 # API route that returns all pokemon from DATABASE
 @pokemon.route('/pokemon', methods=['GET'])
 def api_pokemon_get():
+
+    cursor = conn.cursor()
 
     pokemon = []
 
     search = request.args.get('search', '').lower()
     if len(search) > 0:
-        db.execute("""
+        cursor.execute("""
             SELECT
                 id, name, description, image_url
             FROM pokemon
             WHERE name ILIKE = '%s%';
         """, (search,))
     else:
-        db.execute("""
+        cursor.execute("""
             SELECT
                 id, name, description, image_url
             FROM pokemon;
         """)
-    pokemon = db.fetchall()
+    pokemon = cursor.fetchall()
 
     pokemon = list(map(lambda x: {
         "id": x[0],
@@ -39,7 +38,7 @@ def api_pokemon_get():
 
     ids = tuple(map(lambda x: x["id"], pokemon))
 
-    db.execute("""
+    cursor.execute("""
         SELECT
             pt.pokemon_id, t.name
         FROM pokemon_types as pt
@@ -47,14 +46,14 @@ def api_pokemon_get():
         ON pt.type_id = t.id
         WHERE pt.pokemon_id IN %s;
     """, (ids,))
-    types = db.fetchall()
+    types = cursor.fetchall()
 
-    db.execute("""
+    cursor.execute("""
         SELECT pokemon_id, level, method
         FROM evolutions
         WHERE pokemon_id IN %s;
     """, (ids,))
-    evolutions = db.fetchall()
+    evolutions = cursor.fetchall()
 
     pokemon = list(map(lambda x: {
         "id": x["id"],
@@ -74,24 +73,28 @@ def api_pokemon_get():
 # For example /api/pokemon/1 will give you Bulbasaur
 @pokemon.route('/pokemon/<int:id>', methods=['GET'])
 def api_pokemon_id_get(id):
-    db.execute("""
+    cursor = conn.cursor()
+    cursor.execute("""
         SELECT
             id, name, description, image_url
         FROM pokemon
         WHERE id = %s;
     """, (id,))
-    pokemon = db.fetchone()
+    result = cursor.fetchone()
+    conn.commit()
 
-    if pokemon != None:
+    if result is not None:
 
         pokemon = {
-            "id": pokemon[0],
-            "name": pokemon[1],
-            "description": pokemon[2],
-            "image_url": pokemon[3]
+            "id": result[0],
+            "name": result[1],
+            "description": result[2],
+            "image_url": result[3],
+            "types": [],
+            "evolutions": []
         }
 
-        db.execute("""
+        cursor.execute("""
             SELECT
                 pt.pokemon_id, t.name
             FROM pokemon_types as pt
@@ -99,24 +102,26 @@ def api_pokemon_id_get(id):
             ON pt.type_id = t.id
             WHERE pt.pokemon_id = %s;
         """, (id,))
-        types = db.fetchall()
+        types = cursor.fetchall()
+        pokemon["types"] = list(map(lambda t: t[1], types))
 
-        db.execute("""
+        cursor.execute("""
             SELECT e.evolution_id, e.level, e.method, p.name
             FROM evolutions as e
             JOIN pokemon as p
             ON e.evolution_id = p.id
             WHERE pokemon_id = %s;
         """, (id,))
-        evolutions = db.fetchall()
+        evolutions = cursor.fetchall()
 
-        pokemon["types"] = list(map(lambda t: t[1], types))
-        pokemon["evolutions"] = list(map(lambda e: {
-            "id": e[0],
-            "level": e[1],
-            "method": e[2],
-            "to": e[3]
-        }, evolutions))
+        if (len(evolutions) > 0):
+
+            pokemon["evolutions"] = list(map(lambda e: {
+                "id": e[0],
+                "level": e[1],
+                "method": e[2],
+                "to": e[3]
+            }, evolutions))
 
         return jsonify(pokemon), 200
     
