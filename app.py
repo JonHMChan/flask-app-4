@@ -50,7 +50,9 @@ def search():
     # Render the search page with the results and the original query
     return render_template('search.html', results=results, query=query)
 
-# Running /migrate will take all data from database.json and insert the data into your Postgres database
+# Running /migrate will run schema.sql, and import database.json into your Postgres database
+# This route should only be run one time throughout your application to set up your Postgres tables using schema.sql
+# This route should also take the data that is in database.json and import it into your Postgres tables after setup
 @app.route("/migrate")
 def migrate():
     with open('data/database.json') as f:
@@ -63,98 +65,8 @@ def migrate():
             cursor = connection.cursor()
             cursor.execute(open("data/schema.sql", "r").read())
             connection.commit()
-
-        # Keep track of evolutions and types to insert data later
-        evolutions = []
-        types = set()
-
-        # Track the number of insertions made
-        tracker = {
-            "pokemon": 0,
-            "pokemon_types": 0,
-            "types": 0,
-            "evolutions": 0,
-            "teams": 0,
-            "team_members": 0
-        }
-
-        # Insert all the pokemon
-        for pokemon in JSON["pokemon"]:
-            db.execute("""
-                INSERT INTO pokemon (id, name, description, image_url)
-                VALUES (%s, %s, %s, %s)
-            """, (pokemon["id"], pokemon["name"], pokemon["description"], pokemon["image_url"]))
-            conn.commit()
-
-            tracker["pokemon"] = tracker["pokemon"] + 1
-
-            # Compile evolution data as a list to insert later
-            for evolution in pokemon["evolutions"]:
-                evolution["pokemon_id"] = pokemon["id"]
-                evolutions.append(evolution)
-            
-            # Compile type data as a set to insert later
-            for poke_type in pokemon["types"]:
-                types.add(poke_type)
-
-        # Insert all evolution relationships
-        for evolution in evolutions:
-            if evolution.get("id", False):
-                db.execute("""
-                    INSERT INTO evolutions (pokemon_id, evolution_id, level, method)
-                    VALUES (%s, %s, %s, %s)
-                """, (evolution["pokemon_id"], evolution["id"], evolution.get("level", None), evolution["method"]))
-                conn.commit()
-
-                tracker["evolutions"] = tracker["evolutions"] + 1
-
-        # Insert all types
-        for poke_type in types:
-            db.execute("""
-                INSERT INTO types (name)
-                VALUES (%s)
-            """, (poke_type,))
-            conn.commit()
-
-            tracker["types"] = tracker["types"] + 1
-
-        # Get ids for all types
-        db.execute("SELECT * FROM types;")
-        poke_types = db.fetchall()
-
-        # Map Pokemon to their types in the pokemon type database
-        for pokemon in JSON["pokemon"]:
-            for poke_type in pokemon["types"]:
-                type_id = list(filter(lambda t: t[1] == poke_type, poke_types))[0][0]
-                db.execute("""
-                    INSERT INTO pokemon_types (pokemon_id, type_id)
-                    VALUES (%s, %s)
-                """, (pokemon["id"],type_id))
-                conn.commit()
-
-                tracker["pokemon_types"] = tracker["pokemon_types"] + 1
-        
-        # Insert teams
-        for team in JSON["teams"]:
-            db.execute("""
-                INSERT INTO teams (id, name, description)
-                VALUES (%s, %s, %s)
-            """, (team["id"], team["name"], team["description"]))
-            conn.commit()
-
-            tracker["teams"] = tracker["teams"] + 1
-
-            # Insert each member pokemon into the database
-            for member in team["members"]:
-                db.execute("""
-                    INSERT INTO team_members (team_id, pokemon_id, level)
-                    VALUES (%s, %s, %s)
-                """, (team["id"], member["pokemon_id"], member["level"]))
-                conn.commit()
-
-                tracker["team_members"] = tracker["team_members"] + 1
     
-    return jsonify(tracker), 200
+    return "Ok!", 200
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.

@@ -1,9 +1,13 @@
-# Flask App 3: Server Side
-For this exercise, you'll be writing the back end code to support a fully built front end. You will also practice creating a global search feature that allows the user to search for pokemon and teams. The application is also live at https://intense-dusk-62733.herokuapp.com/ if you would like to see how it works.
+# Flask App 4: Database Design, Postgres, and SQL
+For this exercise, you'll be writing the database setup and queries that power a fully built front end. The application is also live at https://shrouded-temple-59174.herokuapp.com/ if you would like to see how it works.
 
 ![Pokedex Homepage](https://raw.githubusercontent.com/JonHMChan/flask-app-3/master/static/img/preview.png)
 
 ## What you'll practice
+ - Database Design
+ - Postgres
+ - SQL
+ - Psycopg2
  - Flask
  - Jinja
  - AJAX
@@ -15,17 +19,17 @@ For this exercise, you'll be writing the back end code to support a fully built 
  ## Files and folders
 
  **For you**
- - `/templates` - Contains all of the HTML templates in your application. There are two: `index.html` is for the homepage located at `localhost:5000`, and `detail.html` is for an individual pokemon's page located at `localhost:5000/:id` where `:id` is the Pokemon's ID number. For example, `localhost:5000/1` should be the page for Bulbasaur.
- - `/static/css` - Contains each of the CSS files for each of the HTML files in `/templates`. So `index.css` is for `index.html` and `detail.css` is for `detail.html`
- - `/static/js` - Contains each of the JavaScript files for each of the HTML files in `templates`. So `index.js` is for `index.html` and `detail.js` is for `detail.html`. This folder also contains `jquery.min.js` for jQuery. It's already installed in each of your HTML files in `/templates` and you can see how it's installed there.
+ - `/db` - Contains the `database.json` file you will import into your Postgres database, a `db.py` file you will use for your database connection and setup, and a `schema.sql` command that will set up your tables when you run `localhost:5000/migrate`.
+ - `.env` - You will need to create a `.env` file at the root of this application containing the database URL for your Postgres database. For example, on my computer, `.env` would contain `DATABASE_URL=postgres://postgres:postgres@localhost:5432/pokedex`
+ - `app.py` - Contains the `/migrate` path which when run, will set up your database and import `database.json` into your tables. You will need to write the code that powers this route.
+ - `pokemon.py` - Contains all of the `GET` methods for the Pokemon API. You will also need to support search functionality in `/api/pokemon`
+ - `teams.py` - Contains all of the API routes for Teams. You will need to implement all of the REST operations using the database.
 
  **Do not touch**
  - `README.md` - The instructions you're reading right now.
  - `setup.sh` - The file that will set your application up for you. See the "Setup" instructions below.
  - `requirements.txt` - A file that stores all of your Python dependencies (e.g. Flask) so when you run `pip install -r requirements.txt`, you'll download all the dependencies you need. For more information, see "How setup.sh works"
- - `app.py` - The Python file that starts your web application. This file is written using the Flask framework, and it's been commented with some information to help you understand how it works. For this exercise, you should not change anything in this file, but feel free to explore. We will be working on the server side code in the next exercise.
  - `.gitignore` - A file that tells `git` which files to ignore when you use version control.
- - `/data` - A folder that contains all of the Pokemon data for your application. In future exercises, this will be replaced with other ways of storing data.
  - `/venv` - A folder that contains all of your virtual environment files and downloaded dependencies from `pip`. For more information, see "How setup.sh works"
  - `/__pycache__` - You'll probably have this folder generated. It is something created by Python 3 when you run it, and you can safely ignore it.
 
@@ -53,17 +57,59 @@ These instructions are a simplified version of the Flask [installation instructi
 5. Once you have everything setup, you should be able to run `flask run` and your server should start listening. Go to a browser at `localhost:5000` and you should see your app running.
 
 # Requirements
-You'll be focusing on the front end of the application. Future exercises will be built on top of the knowledge you gain from this exercise. You'll be focusing on the front end of the application. Future exercises will be built on top of the knowledge you gain from this exercise. In addition to the requirements below, you can see the full solution of this application running at https://sleepy-earth-06238.herokuapp.com/.
+You'll be focusing database setup, data migration, and queries that power an existing Pokemon front end. This will require intimate knowledge of database design, Postgres, and SQL. In addition to the requirements below, you can see the full solution of this application running at https://shrouded-temple-59174.herokuapp.com/.
 
-1. **API** (`localhost:5000/api`) - You need to fill out all the of API endpoints that return "Fix me!" in `/api/pokemon.py` and `/api/teams.py`:
- - The front end of the application is complete: use it to guide your decisions building the APIs
- - You should be completing these endpoints using the REST pattern
- - The pokemon API allows you to get a single pokemon record or lists all the pokemon in the database
- - The pokemon API has an additional requirement on getting all pokemon: it can also filter results using a search paramater
- - The teams API allows for all basic REST: get all teams, get one team, create a team, delete a team, update an entire team, update a team partially
-2. **Search** (`localhost:5000/search`) - You will need to write the back end for this route (`app.py`) and use Jinja to render the results (`/templates/search.html`):
- - In the back end, requirements are laid out in comments. There are additional requirements if you finish early.
- - Your search page should show the number of results, the original query, and a ranked list of all the results.
- - Each search result should have a working link to its detail page, specify what type of item it is (pokemon or team), and a description.
- - Both the home page at `localhost:5000` and the search page should have a search bar that takes the user search results page that fires on submission.
- - When rendering the results, do NOT use JavaScript or AJAX.
+1. **Set Up Postgres** - You'll need to install Postgres and psycopg2 and set up environment variables to get your database connection going before you do anything else.
+ - Follow the new setup instructions with Postgres additions to set up a local database.
+ - Make sure `psql` is working in your command line.
+ - `db.py` is where your Postgres connection is established and should connect to your local database properly.
+ - Add your environment variables for connecting to the database in a new `.env` file at the root of your application.
+2. **Database Migration** (`localhost:5000/migrate`) - You'll need to set up your database tables when a user hits this route.
+ - Change `schema.sql` so it sets up all of your database tables using the database connection in `db.py`
+ - `schema.sql` should be idempotent. Research what that means.
+ - You should read the contents of `database.json` and import all of the data in that file into your Postgres tables.
+ - Your database tables should follow best practices of setting up relationships between objects like Pokemon, teams, types, and evolutions.
+ - If you implement your migrations successfully, you should be able to stop your server, start it again, and all of your database changes should remain
+3. **API with SQL** (`localhost:5000/api`) - You need to reimplement all of the Pokemon and team APIs using SQL instead of `database.json`. Study the front end code to understand how your API should work.
+ - The Pokemon API should use database calls to power its `GET` routes.
+ - The Pokemon API should implement basic search, e.g. `localhost:5000/api/pokemon?search=p` should find Pokemone that start with the letter `p`.
+ - The Teams API should implement a full REST pattern using SQL.
+
+## What you need to know
+ To properly complete this exercise, you'll need to understand a few concepts in a number of different technologies:
+
+Postgres:
+
+ - How to set up a Postgres database, start it, and stop it. Use Postgres.app to simplify this and follow the new setup instructions.
+ - What environment variables are, how to use them in Python (`os` package), and using `.env` to set environment variables.
+ - How to setup `psql` in the command line. Look at the new instructions for clarity.
+ - How to set up new databases, login, and execute commands using `psql`.
+ - How Postgres connection URLs work and how they can be used with `.env` to connect to your database.
+ - How to use an app like Postico to visualize your Postgres databases.
+
+Database Design:
+
+ - How to write code in a `.sql` file to create a database schema (like `schema.sql`). Essentially, you need to know how to create and alter a database so you can set up your tables for the first time.
+ - What it means for code to be idempotent, and why your schema setup code (like `schema.sql`) should be idempotent.
+ - How to create different tables to represent your objects. In this case, you want to write tables to represent Pokemon, Teams, and their relationships. You may also have to create new tables for other properties like types, evolutions, and team members.
+ - How to set up relationships between different tables, especially if they are one-to-many relationships or many-to-many relationships. Look up foreign keys and ACID.
+ - What data types are appropriate for each piece of data (e.g. `TEXT`, `INTEGER`, etc.)
+ - What a `PRIMARY KEY` is and how it's used to automatically increment and set an ID
+
+psycopg2:
+
+ - What psycopg2 is and how it connects Python and Postgres together.
+ - How `psycopg2.connect()` works to establish a connection to your database.
+ - What a cursor is and how `connection.cursor()` is used, especially if it can be reused.
+ - How to execute SQL queries using `cursor.execute()` with parameters.
+ - How to use `connection.commit()` to commit database transactions.
+ - How to use `cursor.fetchone()` and `cursor.fetchall()`.
+ - How to translate SQL query values into dictionaries in Python.
+
+SQL:
+ - Using `SELECT`, `UPDATE`, `INSERT`, and `DELETE`.
+ - How to use SQL to set up a REST API.
+ - Using `WHERE` to limit execution of SQL queries.
+ - How to do basic joins with `JOIN` on two tables or more.
+ - How to use `LIKE` or `ILIKE` for searching.
+ - How to use `IN` to specify several conditions in a `WHERE` clause.
