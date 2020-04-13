@@ -19,15 +19,17 @@ def api_pokemon_get():
             SELECT
                 id, name, description, image_url
             FROM pokemon
-            WHERE name ILIKE = '%s%';
-        """, (search,))
+            WHERE name ILIKE %s;
+        """, (search + "%",))
     else:
         cursor.execute("""
             SELECT
                 id, name, description, image_url
             FROM pokemon;
         """)
+    
     pokemon = cursor.fetchall()
+
 
     pokemon = list(map(lambda x: {
         "id": x[0],
