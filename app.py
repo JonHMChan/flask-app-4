@@ -13,11 +13,6 @@ app.register_blueprint(api.teams, url_prefix="/api")
 # Get a database connection to run queries
 db = conn.cursor()
 
-# Run the schema file to set up the database on app start up
-with conn as connection:
-    db.execute(open("data/schema.sql", "r").read())
-    conn.commit()
-
 # Home page route that serves index.html
 @app.route('/')
 def index():
@@ -43,7 +38,7 @@ def teams_id_edit(id):
 
 @app.route('/teams/create')
 def teams_create():
-    return render_template('teams/create.html', pokemon=DATABASE.get("pokemon", []))
+    return render_template('teams/create.html')
 
 @app.route('/search')
 def search():
@@ -51,85 +46,6 @@ def search():
 
     # Result list to hold final results
     results = []
-
-    if len(query) > 0:
-
-        # Split tokens
-        tokens = query.split(" ")
-
-        # Search through pokemon
-        for item in DATABASE.get("pokemon", []):
-
-            # Track whether we need to add this pokemon to the results
-            append = False
-
-            # Result object with URL, ranking
-            result = {
-                "id": item.get("id", -1),
-                "type": "Pokemon",
-                "name": item.get("name", ""),
-                "description": item.get("description", ""),
-                "url": "/pokemon/" + str(item.get("id", -1)),
-                "ranking": 0
-            }
-
-            # Iterate through each token and see if there 
-            for token in tokens:
-                token_lower = token.lower()
-
-                # Loop through the properties we want to consider
-                for prop in [["name", 4], ["description", 2]]:
-                    if token_lower in item.get(prop[0], "").lower():
-                        
-                        # If token is found, mark result for adding to results and update ranking score
-                        append = True
-                        result["ranking"] = result.get("ranking", 0) + prop[1]
-                        
-                        # Highlight the fields with a class
-                        token_regex = re.compile(re.escape(token), re.IGNORECASE)
-                        highlights = set(token_regex.findall(result.get(prop[0])))
-                        for highlight in highlights:
-                            result[prop[0]] = str(result[prop[0]]).replace(highlight, "<span class=\"highlight\">" + highlight + "</span>")
-                
-                # Loop through the types
-                for pokeType in item.get("types", []):
-
-                    # If token is found, mark result for adding to results and update ranking score
-                    if token_lower in pokeType.lower():
-                        append = True
-                        result["ranking"] = result.get("ranking", 0) + 1
-
-            # Add result object to results if marked
-            if append:
-                results.append(result)
-        
-        # Similar for teams
-        for item in DATABASE.get("teams", []):
-            append = False
-            result = {
-                "id": item.get("id", -1),
-                "type": "Team",
-                "name": item.get("name", ""),
-                "description": item.get("description", ""),
-                "url": "/teams/" + str(item.get("id", -1)),
-                "ranking": 0
-            }
-            for token in tokens:
-                token_lower = token.lower()
-                for prop in [["name", 4], ["description", 2]]:
-                    if token_lower in item.get(prop[0], "").lower():
-                        append = True
-                        result["ranking"] = result.get("ranking", 0) + prop[1]
-
-                        token_regex = re.compile(re.escape(token), re.IGNORECASE)
-                        highlights = set(token_regex.findall(result.get(prop[0])))
-                        for highlight in highlights:
-                            result[prop[0]] = str(result[prop[0]]).replace(highlight, "<span class=\"highlight\">" + highlight + "</span>")
-            if append:
-                results.append(result)
-
-        # Sort results by ranking score
-        results = sorted(results, key=lambda x: x.get("ranking", 0), reverse=True)
     
     # Render the search page with the results and the original query
     return render_template('search.html', results=results, query=query)
@@ -141,6 +57,12 @@ def migrate():
 
         # Load the JSON file
         JSON = json.load(f)
+
+        # Run the schema file to set up the database on app start up
+        with conn as connection:
+            cursor = connection.cursor()
+            cursor.execute(open("data/schema.sql", "r").read())
+            connection.commit()
 
         # Keep track of evolutions and types to insert data later
         evolutions = []
