@@ -19,7 +19,7 @@ For this exercise, you'll be writing the database setup and queries that power a
  ## Files and folders
 
  **For you**
- - `/db` - Contains the `database.json` file you will import into your Postgres database, a `db.py` file you will use for your database connection and setup, and a `schema.sql` command that will set up your tables when you run `localhost:5000/migrate`.
+ - `/data` - Contains the `database.json` file you will import into your Postgres database, a `db.py` file you will use for your database connection and setup, and a `schema.sql` command that will set up your tables when you run `localhost:5000/migrate`.
  - `.env` - You will need to create a `.env` file at the root of this application containing the database URL for your Postgres database. For example, on my computer, `.env` would contain `DATABASE_URL=postgres://postgres:postgres@localhost:5432/pokedex`
  - `app.py` - Contains the `/migrate` path which when run, will set up your database and import `database.json` into your tables. You will need to write the code that powers this route.
  - `pokemon.py` - Contains all of the `GET` methods for the Pokemon API. You will also need to support search functionality in `/api/pokemon`
