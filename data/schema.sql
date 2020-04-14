@@ -10,7 +10,9 @@ CREATE TABLE pokemon (
     poke_id INTEGER PRIMARY KEY,
     poke_name VARCHAR(50),
     poke_desc VARCHAR(500),
-    poke_image_url VARCHAR(255)
+    poke_image_url VARCHAR(255),
+    poke_type_1 VARCHAR(10),
+    poke_type_2 VARCHAR(10)
 );
 
 CREATE TABLE team_members (
@@ -19,7 +21,7 @@ CREATE TABLE team_members (
     member_level INTEGER
 );
 
-CREATE TABLE types (
+/*CREATE TABLE types (
     poke_id INTEGER PRIMARY KEY REFERENCES pokemon(poke_id),
     is_normal BOOLEAN,
     is_fire BOOLEAN,
@@ -39,7 +41,7 @@ CREATE TABLE types (
     is_dragon BOOLEAN,
     is_steel BOOLEAN,
     is_fairy BOOLEAN
-);
+);*/
 
 CREATE TABLE evolutions (
     poke_id INTEGER REFERENCES pokemon(poke_id),
