@@ -9,12 +9,21 @@ pokemon = Blueprint('pokemon', 'pokemon')
 # This route also implements a search functionality based on a Pokemon's name (e.g. localhost:5000/api/pokemon?search=m)
 @pokemon.route('/pokemon', methods=['GET'])
 def api_pokemon_get():
+    query = request.args.get("search", "")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pokemon;")
+    if len(query) > 0:
+        cursor.execute("""
+        SELECT *
+        FROM pokemon
+        WHERE _name ILIKE %s;
+        """, ('%'+query+'%',))
+    else:
+        cursor.execute("SELECT * FROM pokemon;")
     pokemon = cursor.fetchall()
+    conn.commit()
     pokemon_to_return = []
     for p in pokemon:
-        pokemon_to_return.append({'id':p[0],'name':p[1],'image_url':p[3]})
+        pokemon_to_return.append({'id':p[0],'name':p[1],'image_url':p[3],'types':[p[4],p[5]]})
     return jsonify(pokemon_to_return), 200
 
 # API route that returns a single pokemon from the database according to the ID in the URL

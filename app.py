@@ -47,8 +47,13 @@ def teams_create():
 def search():
     query = request.args.get('query', '')
 
-    # Result list to hold final results
-    results = []
+    # cursor = conn.cursor()
+    # cursor.execute("""
+    # SELECT * FROM pokemon
+    # WHERE _name like %s%
+    # """, (query,))
+    # # Result list to hold final results
+    # results = []
     
     # Render the search page with the results and the original query
     return render_template('search.html', results=results, query=query)
