@@ -83,7 +83,7 @@ def migrate():
             for evolution in pokemon['evolutions']:
                 evolution_id = evolution['id'] if ('id' in evolution.keys()) else None
                 level = evolution['level'] if ('level' in evolution.keys()) else None
-                db.execute("INSERT INTO evolutions (pokemon_id, evol_id, evol_method, evol_level) VALUES (%s, %s, %s, %s)", (pokemon['id'], evolution_id, evolution['method'], level))
+                db.execute("INSERT INTO evolutions (pokemon_id, evol_id, evol_method, evol_level, evol_to) VALUES (%s, %s, %s, %s, %s)", (pokemon['id'], evolution_id, evolution['method'], level, evolution['to']))
             conn.commit()
 
         # teams and team_members data

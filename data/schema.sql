@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS evolutions (
     pokemon_id INTEGER REFERENCES pokemon(id),
     evol_id INTEGER,
     evol_method TEXT,
-    evol_level INTEGER
+    evol_level INTEGER,
+    evol_to TEXT
 );
 
 -- DROP TABLE teams CASCADE;

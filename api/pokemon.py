@@ -22,5 +22,39 @@ def api_pokemon_get():
 @pokemon.route('/pokemon/<int:id>', methods=['GET'])
 def api_pokemon_id_get(id):
     cursor = conn.cursor()
+    cursor.execute("""
+    SELECT *
+    FROM pokemon
+    WHERE id = %s;
+    """, (id,))
+    pokemon = cursor.fetchone()
+    conn.commit()
 
-    return "Fix me!"
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT evol_id, evol_method, evol_level, evol_to
+    FROM evolutions
+    WHERE pokemon_id=%s;
+    """, (id,))
+    evolutions = cursor.fetchall()
+    conn.commit()
+
+    evolutions_to_return = []
+    for e in evolutions:
+        evolutions_to_return.append({
+            "id" : e[0],
+            "method" : e[1],
+            "level" : e[2],
+            "to" : e[3]
+        })
+
+    pokemon_to_return = {
+        "id" : pokemon[0],
+        "name" : pokemon[1],
+        "description" : pokemon[2],
+        "image_url" : pokemon[3],
+        "types" : [pokemon[4], pokemon[5]],
+        "evolutions" : evolutions_to_return
+    }
+
+    return jsonify(pokemon_to_return), 200

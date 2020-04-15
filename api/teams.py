@@ -39,8 +39,38 @@ def api_teams_get():
 @teams.route('/teams/<int:id>', methods=['GET'])
 def api_teams_id_get(id):
     cursor = conn.cursor()
+    cursor.execute("""
+    SELECT *
+    FROM teams
+    WHERE id=%s;
+    """, (id,))
+    team = cursor.fetchone()
+    conn.commit()
 
-    return "Fix me!"
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT
+        pokemon_id,
+        member_level
+    FROM team_members
+    WHERE teams_id=%s;
+    """, (id,))
+    members = cursor.fetchall()
+    conn.commit()
+
+    members_to_return = []
+    for m in members:
+        members_to_return.append( {
+            "pokemon_id":m[0],
+            "level":m[1]
+        })
+    team_to_return = {
+        "id":team[0],
+        "name":team[1],
+        "description":team[2],
+        "members":members_to_return
+    }
+    return jsonify(team_to_return),200
 
 # API route that creates a new team using the request body JSON and inserts it into the database
 @teams.route('/teams', methods=['POST'])
