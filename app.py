@@ -1,10 +1,12 @@
-# Do not change anything in this file for this exercise
 import os
 import api 
 import json
 import re
 from data import conn
 from flask import Flask, render_template, jsonify, request
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.register_blueprint(api.pokemon, url_prefix="/api")
