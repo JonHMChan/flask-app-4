@@ -27,8 +27,12 @@ teams = Blueprint('teams', 'teams')
 @teams.route('/teams', methods=['GET'])
 def api_teams_get():
     cursor = conn.cursor()
-
-    return "Fix me!"
+    cursor.execute("SELECT * FROM teams;")
+    teams = cursor.fetchall()
+    teams_to_return = []
+    for t in teams:
+        teams_to_return.append({'id':t[0],'name':t[1]})
+    return jsonify(teams_to_return),200
 
 # API route that returns a single teams from database according to the ID in the URL
 # For example /api/teams/1 will give you Ash's Team

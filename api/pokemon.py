@@ -10,8 +10,12 @@ pokemon = Blueprint('pokemon', 'pokemon')
 @pokemon.route('/pokemon', methods=['GET'])
 def api_pokemon_get():
     cursor = conn.cursor()
-
-    return "Fix me!"
+    cursor.execute("SELECT * FROM pokemon;")
+    pokemon = cursor.fetchall()
+    pokemon_to_return = []
+    for p in pokemon:
+        pokemon_to_return.append({'id':p[0],'name':p[1],'image_url':p[3]})
+    return jsonify(pokemon_to_return), 200
 
 # API route that returns a single pokemon from the database according to the ID in the URL
 # For example /api/pokemon/1 will give you Bulbasaur
