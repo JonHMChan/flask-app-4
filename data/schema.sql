@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS teams (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     _name TEXT,
     _desc TEXT
 );

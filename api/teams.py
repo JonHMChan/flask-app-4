@@ -76,7 +76,8 @@ def api_teams_id_get(id):
 @teams.route('/teams', methods=['POST'])
 def api_teams_id_post():
     cursor = conn.cursor()
-
+    new_team = json.loads(request.data)
+    
     return "Fix me!"
 
 # API route that does a full update by replacing the entire teams dictionary at the specified ID with the request body JSON
@@ -84,6 +85,8 @@ def api_teams_id_post():
 @teams.route('/teams/<int:id>', methods=['PUT'])
 def api_teams_id_put(id):
     cursor = conn.cursor()
+
+
 
     return "Fix me!"
 

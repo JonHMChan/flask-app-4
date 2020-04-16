@@ -68,10 +68,6 @@ def migrate():
         # Load the JSON file
         JSON = json.load(f)
 
-        # for value in JSON.values():
-        #     if type(value) == 'string':
-        #         value = value.replace("'","''")
-
         # Run the schema file to set up the database on app start up
         with conn as connection:
             cursor = connection.cursor()
@@ -93,9 +89,14 @@ def migrate():
 
         # teams and team_members data
         for team in JSON['teams']:
-            db.execute("INSERT INTO teams (id, _name, _desc) VALUES (%s, %s, %s)", (team['id'], team['name'], team['description']))
+            db.execute("INSERT INTO teams (_name, _desc) VALUES (%s, %s)", (team['name'], team['description']))
+            db.execute("""
+            SELECT MAX(id)
+            FROM teams;
+            """)
+            teams_id = db.fetchone()
             for pokemon in team['members']:
-                db.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (team['id'], pokemon['pokemon_id'], pokemon['level']))
+                db.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (teams_id, pokemon['pokemon_id'], pokemon['level']))
             conn.commit()
 
 
