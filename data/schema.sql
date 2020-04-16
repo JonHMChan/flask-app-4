@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS pokemon (
 );
 
 CREATE TABLE IF NOT EXISTS team_members (
-    teams_id INTEGER REFERENCES teams(id),
+    teams_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
     pokemon_id INTEGER REFERENCES pokemon(id),
     member_level INTEGER
 );

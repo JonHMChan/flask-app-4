@@ -147,5 +147,9 @@ def api_teams_id_patch(id):
 @teams.route('/teams/<int:id>', methods=['DELETE'])
 def api_teams_id_delete(id):
     cursor = conn.cursor()
-
-    return "Fix me!"
+    cursor.execute("""
+    DELETE FROM teams *
+    WHERE id=%s;
+    """, (id,))
+    conn.commit()
+    return "ok!", 204
