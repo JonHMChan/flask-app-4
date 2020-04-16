@@ -77,8 +77,16 @@ def api_teams_id_get(id):
 def api_teams_id_post():
     cursor = conn.cursor()
     new_team = json.loads(request.data)
-    
-    return "Fix me!"
+    cursor.execute("INSERT INTO teams (_name, _desc) VALUES (%s, %s)", (new_team['name'], new_team['description']))
+    cursor.execute("""
+    SELECT MAX(id)
+    FROM teams;
+    """)
+    teams_id = cursor.fetchone()
+    for pokemon in new_team['members']:
+        cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (teams_id, pokemon['pokemon_id'], pokemon['level']))
+    conn.commit()
+    return ("OK!"), 201
 
 # API route that does a full update by replacing the entire teams dictionary at the specified ID with the request body JSON
 # For example sending { "name": "Foobar" } to /api/teams/1 would replace the Bulbasaur dictionary with the object { "name": "Foobar" }
