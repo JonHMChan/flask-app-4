@@ -13,17 +13,36 @@ def api_pokemon_get():
     cursor = conn.cursor()
     if len(query) > 0:
         cursor.execute("""
-        SELECT *
-        FROM pokemon
-        WHERE _name ILIKE %s;
+            SELECT
+                id,
+                name,
+                description,
+                image_url,
+                type_1,
+                type_2
+            FROM pokemon
+            WHERE name ILIKE %s;
         """, ('%'+query+'%',))
     else:
-        cursor.execute("SELECT * FROM pokemon;")
+        cursor.execute("""
+            SELECT 
+                id,
+                name,
+                description,
+                image_url,
+                type_1,
+                type_2
+            FROM pokemon;
+        """)
     pokemon = cursor.fetchall()
     conn.commit()
-    pokemon_to_return = []
-    for p in pokemon:
-        pokemon_to_return.append({'id':p[0],'name':p[1],'image_url':p[3],'types':[p[4],p[5]]})
+    #Not returning 'description' column because it's never used from this call
+    formatresults = lambda p: {
+            'id':p[0],
+            'name':p[1], 
+            'image_url':p[3],
+            'types':[p[4],p[5]]}
+    pokemon_to_return = list(map(formatresults, pokemon))
     return jsonify(pokemon_to_return), 200
 
 # API route that returns a single pokemon from the database according to the ID in the URL
@@ -32,30 +51,39 @@ def api_pokemon_get():
 def api_pokemon_id_get(id):
     cursor = conn.cursor()
     cursor.execute("""
-    SELECT *
-    FROM pokemon
-    WHERE id = %s;
+        SELECT 
+            id,
+            name,
+            description,
+            image_url,
+            type_1,
+            type_2
+        FROM pokemon
+        WHERE id = %s;
     """, (id,))
     pokemon = cursor.fetchone()
     conn.commit()
 
     cursor = conn.cursor()
     cursor.execute("""
-    SELECT evol_id, evol_method, evol_level, evol_to
-    FROM evolutions
-    WHERE pokemon_id=%s;
+        SELECT 
+            evolution_id, 
+            method, 
+            level, 
+            evolves_to
+        FROM evolutions
+        WHERE pokemon_id=%s;
     """, (id,))
     evolutions = cursor.fetchall()
     conn.commit()
 
-    evolutions_to_return = []
-    for e in evolutions:
-        evolutions_to_return.append({
+    formatresults = lambda e: {
             "id" : e[0],
             "method" : e[1],
             "level" : e[2],
             "to" : e[3]
-        })
+        }
+    evolutions_to_return = list(map(formatresults, evolutions))
 
     pokemon_to_return = {
         "id" : pokemon[0],

@@ -77,30 +77,46 @@ def migrate():
         #pokemon and evolutions data
         for pokemon in JSON['pokemon']:
             typetwo = pokemon['types'][1] if (len(pokemon['types']) > 1) else None
-            db.execute("INSERT INTO pokemon (id, _name, _desc, image_url, type_1, type_2) VALUES (%s, %s, %s, %s, %s, %s)", (pokemon['id'], pokemon['name'], pokemon['description'], pokemon['image_url'], pokemon['types'][0], typetwo))
+            db.execute("""
+                INSERT INTO 
+                    pokemon (id, name, description, image_url, type_1, type_2) 
+                VALUES 
+                    (%s, %s, %s, %s, %s, %s)
+            """, (pokemon['id'], pokemon['name'], pokemon['description'], pokemon['image_url'], pokemon['types'][0], typetwo))
             conn.commit()
         
         for pokemon in JSON['pokemon']:
             for evolution in pokemon['evolutions']:
                 evolution_id = evolution['id'] if ('id' in evolution.keys()) else None
                 level = evolution['level'] if ('level' in evolution.keys()) else None
-                db.execute("INSERT INTO evolutions (pokemon_id, evol_id, evol_method, evol_level, evol_to) VALUES (%s, %s, %s, %s, %s)", (pokemon['id'], evolution_id, evolution['method'], level, evolution['to']))
+                db.execute("""
+                    INSERT INTO 
+                        evolutions (pokemon_id, evolution_id, method, level, evolves_to) 
+                    VALUES 
+                        (%s, %s, %s, %s, %s)
+                """, (pokemon['id'], evolution_id, evolution['method'], level, evolution['to']))
             conn.commit()
 
         # teams and team_members data
         for team in JSON['teams']:
-            db.execute("INSERT INTO teams (_name, _desc) VALUES (%s, %s)", (team['name'], team['description']))
             db.execute("""
-            SELECT MAX(id)
-            FROM teams;
-            """)
-            teams_id = db.fetchone()
+                INSERT INTO 
+                    teams (name, description) 
+                VALUES 
+                    (%s, %s)
+                RETURNING
+                    id
+            """, (team['name'], team['description']))
+            teams_id = db.fetchone()[0]
             for pokemon in team['members']:
-                db.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (teams_id, pokemon['pokemon_id'], pokemon['level']))
+                db.execute("""
+                    INSERT INTO 
+                        team_members (teams_id, pokemon_id, member_level) 
+                    VALUES 
+                        (%s, %s, %s)
+                """, (teams_id, pokemon['pokemon_id'], pokemon['level']))
             conn.commit()
 
-
-    
     return "Ok!", 200
 
 if __name__ == '__main__':

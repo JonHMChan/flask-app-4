@@ -27,11 +27,16 @@ teams = Blueprint('teams', 'teams')
 @teams.route('/teams', methods=['GET'])
 def api_teams_get():
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM teams;")
+    cursor.execute("""
+        SELECT 
+            id,
+            name,
+            description
+        FROM teams;
+    """)
     teams = cursor.fetchall()
-    teams_to_return = []
-    for t in teams:
-        teams_to_return.append({'id':t[0],'name':t[1]})
+    formatresults = lambda t: {'id':t[0],'name':t[1]}
+    teams_to_return = list(map(formatresults, teams))
     return jsonify(teams_to_return),200
 
 # API route that returns a single teams from database according to the ID in the URL
@@ -40,30 +45,32 @@ def api_teams_get():
 def api_teams_id_get(id):
     cursor = conn.cursor()
     cursor.execute("""
-    SELECT *
-    FROM teams
-    WHERE id=%s;
+        SELECT
+            id,
+            name,
+            description
+        FROM teams
+        WHERE id=%s;
     """, (id,))
     team = cursor.fetchone()
     conn.commit()
 
     cursor = conn.cursor()
     cursor.execute("""
-    SELECT
-        pokemon_id,
-        member_level
-    FROM team_members
-    WHERE teams_id=%s;
+        SELECT
+            pokemon_id,
+            member_level
+        FROM team_members
+        WHERE teams_id=%s;
     """, (id,))
     members = cursor.fetchall()
     conn.commit()
 
-    members_to_return = []
-    for m in members:
-        members_to_return.append( {
+    formatresults = lambda m: {
             "pokemon_id":m[0],
             "level":m[1]
-        })
+        }
+    members_to_return = list(map(formatresults, members))
     team_to_return = {
         "id":team[0],
         "name":team[1],
@@ -77,14 +84,21 @@ def api_teams_id_get(id):
 def api_teams_id_post():
     cursor = conn.cursor()
     new_team = json.loads(request.data)
-    cursor.execute("INSERT INTO teams (_name, _desc) VALUES (%s, %s)", (new_team['name'], new_team['description']))
     cursor.execute("""
-    SELECT MAX(id)
-    FROM teams;
-    """)
-    teams_id = cursor.fetchone()
+        INSERT INTO 
+            teams (name, description) 
+        VALUES 
+            (%s, %s)
+        RETURNING id
+    """, (new_team['name'], new_team['description']))
+    teams_id = cursor.fetchone()[0]
     for pokemon in new_team['members']:
-        cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (teams_id, pokemon['pokemon_id'], pokemon['level']))
+        cursor.execute("""
+            INSERT INTO 
+                team_members (teams_id, pokemon_id, member_level) 
+            VALUES 
+                (%s, %s, %s)
+        """, (teams_id, pokemon['pokemon_id'], pokemon['level']))
     conn.commit()
     return ("OK!"), 201
 
@@ -95,17 +109,23 @@ def api_teams_id_put(id):
     cursor = conn.cursor()
     updated_team = json.loads(request.data)
     cursor.execute("""
-    UPDATE teams
-    SET _name = %s,
-    _desc = %s
-    WHERE id = %s;
+        UPDATE teams
+        SET 
+            name = %s,
+            description = %s
+        WHERE id = %s;
     """, (updated_team['name'], updated_team['description'], id))
     cursor.execute("""
-    DELETE FROM ONLY team_members
-    WHERE teams_id = %s;
+        DELETE FROM ONLY team_members
+        WHERE teams_id = %s;
     """, (id,))
     for pokemon in updated_team['members']:
-        cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (id, pokemon['pokemon_id'], pokemon['level']))
+        cursor.execute("""
+            INSERT INTO 
+                team_members (teams_id, pokemon_id, member_level) 
+            VALUES 
+                (%s, %s, %s)
+        """, (id, pokemon['pokemon_id'], pokemon['level']))
     conn.commit()
 
     return jsonify(updated_team), 200
@@ -116,29 +136,47 @@ def api_teams_id_put(id):
 def api_teams_id_patch(id):
     cursor = conn.cursor()
     patched_team = json.loads(request.data)
-    for key in patched_team.keys():
-        if key == 'name':
-            cursor.execute("UPDATE teams SET _name = %s WHERE id = %s", (patched_team['name'], id))
-        elif key == 'description':
-            cursor.execute("UPDATE teams SET _desc = %s WHERE id = %s", (patched_team['description'], id))
-        elif key == 'members':
-            cursor.execute("""
-            DELETE FROM ONLY team_members
-            WHERE teams_id = %s;
-            """, (id,))
-            for pokemon in patched_team['members']:
-                cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (id, pokemon['pokemon_id'], pokemon['level']))
     cursor.execute("""
-    SELECT * FROM teams
-    WHERE id = %s;
+        SELECT 
+            id,
+            name,
+            description
+        FROM teams
+        WHERE id = %s;
     """, (id,))
     teamdata = cursor.fetchone()
-    updated_team = {
-        'id':id,
-        'name': teamdata[1],
-        'description': teamdata[2],
-        'members': patched_team['members']
-    }
+
+    #update name and description
+    updated_team['name'] = patched_team['name'] if ('name' in patched_team.keys()) else teamdata[1]
+    updated_team['description'] = patched_team['description'] if ('description' in patched_team.keys()) else teamdata[2]
+    cursor.execute("""
+        UPDATE teams
+        SET 
+            name = %s,
+            description = %s
+        WHERE id = %s;
+    """, (updated_team['name'], updated_team['description'], id))
+
+    #update team members
+    if 'members' in patched_team.keys():
+        cursor.execute("""
+            DELETE FROM ONLY team_members
+            WHERE teams_id = %s;
+        """, (id,))
+        for pokemon in patched_team['members']:
+            cursor.execute("""
+                INSERT INTO 
+                    team_members (teams_id, pokemon_id, member_level) 
+                VALUES 
+                    (%s, %s, %s)
+            """, (id, pokemon['pokemon_id'], pokemon['level']))
+        updated_team['members'] = patched_team['members']
+    else:
+        updated_team['members'] = cursor.execute("""
+            SELECT pokemon_id, member_level 
+            FROM team_members 
+            WHERE teams_id = %s;""", (id,))
+    
     conn.commit()
     return jsonify(updated_team), 200
 
@@ -148,8 +186,8 @@ def api_teams_id_patch(id):
 def api_teams_id_delete(id):
     cursor = conn.cursor()
     cursor.execute("""
-    DELETE FROM teams *
-    WHERE id=%s;
+        DELETE FROM teams *
+        WHERE id=%s;
     """, (id,))
     conn.commit()
     return "ok!", 204
