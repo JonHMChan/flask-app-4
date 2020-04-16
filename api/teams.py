@@ -93,10 +93,22 @@ def api_teams_id_post():
 @teams.route('/teams/<int:id>', methods=['PUT'])
 def api_teams_id_put(id):
     cursor = conn.cursor()
+    updated_team = json.loads(request.data)
+    cursor.execute("""
+    UPDATE teams
+    SET _name = %s,
+    _desc = %s
+    WHERE id = %s;
+    """, (updated_team['name'], updated_team['description'], updated_team['id']))
+    cursor.execute("""
+    DELETE FROM ONLY team_members
+    WHERE teams_id = %s;
+    """, (updated_team['id'],))
+    for pokemon in updated_team['members']:
+        cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (updated_team['id'], pokemon['pokemon_id'], pokemon['level']))
+    conn.commit()
 
-
-
-    return "Fix me!"
+    return jsonify(updated_team), 200
 
 # API route that does a partial update by changing the values of the teams dictionary at the specified ID with the values in request body JSON
 # For example sending { "name": "Foobar" } to /api/teams/1 would only change Bulbasaur's name to "Foobar" - nothing else would change
