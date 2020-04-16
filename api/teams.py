@@ -99,13 +99,13 @@ def api_teams_id_put(id):
     SET _name = %s,
     _desc = %s
     WHERE id = %s;
-    """, (updated_team['name'], updated_team['description'], updated_team['id']))
+    """, (updated_team['name'], updated_team['description'], id))
     cursor.execute("""
     DELETE FROM ONLY team_members
     WHERE teams_id = %s;
-    """, (updated_team['id'],))
+    """, (id,))
     for pokemon in updated_team['members']:
-        cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (updated_team['id'], pokemon['pokemon_id'], pokemon['level']))
+        cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (id, pokemon['pokemon_id'], pokemon['level']))
     conn.commit()
 
     return jsonify(updated_team), 200
@@ -115,8 +115,32 @@ def api_teams_id_put(id):
 @teams.route('/teams/<int:id>', methods=['PATCH'])
 def api_teams_id_patch(id):
     cursor = conn.cursor()
-
-    return "Fix me!"
+    patched_team = json.loads(request.data)
+    for key in patched_team.keys():
+        if key == 'name':
+            cursor.execute("UPDATE teams SET _name = %s WHERE id = %s", (patched_team['name'], id))
+        elif key == 'description':
+            cursor.execute("UPDATE teams SET _desc = %s WHERE id = %s", (patched_team['description'], id))
+        elif key == 'members':
+            cursor.execute("""
+            DELETE FROM ONLY team_members
+            WHERE teams_id = %s;
+            """, (id,))
+            for pokemon in patched_team['members']:
+                cursor.execute("INSERT INTO team_members (teams_id, pokemon_id, member_level) VALUES (%s, %s, %s)", (id, pokemon['pokemon_id'], pokemon['level']))
+    cursor.execute("""
+    SELECT * FROM teams
+    WHERE id = %s;
+    """, (id,))
+    teamdata = cursor.fetchone()
+    updated_team = {
+        'id':id,
+        'name': teamdata[1],
+        'description': teamdata[2],
+        'members': patched_team['members']
+    }
+    conn.commit()
+    return jsonify(updated_team), 200
 
 # API route that deletes a single teams from database
 # For example /api/teams/1 will delete Bulbasaur
